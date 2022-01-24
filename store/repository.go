@@ -44,15 +44,15 @@ func (s *Store) InsertUserBalance(b entity.Balance) error {
 	return nil
 }
 
-func (s *Store) UpdateUserBalance(id, sum int) (entity.Balance, error) {
+func (s *Store) UpdateUserBalance(id, sum int) (int, error) {
 	var b entity.Balance
 
 	err := s.db.QueryRow("UPDATE users_balances SET amount = amount + $1 WHERE user_id = $2 RETURNING amount", sum, id).Scan(&b.Amount)
 	if err != nil {
-		return entity.Balance{}, err
+		return b.Amount, err
 	}
 
 	b.UserID = id
 
-	return b, nil
+	return b.Amount, nil
 }

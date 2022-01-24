@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"user-balance/domain/entity"
 	"user-balance/domain/service"
@@ -26,15 +27,14 @@ func NewServer(bs *service.BalanceService) *Server {
 }
 
 func (s *Server) Start(port string) error {
-	s.r.HandleFunc("/balance", s.PlusBalanceHandler).Methods(http.MethodPatch)
-	s.r.HandleFunc("/balance", s.MinusBalanceHandler).Methods(http.MethodPatch)
+	s.r.HandleFunc("/balance", s.MoneyTransaction).Methods(http.MethodPatch)
 	s.r.HandleFunc("/transfer", s.TransferMoneyHandler).Methods(http.MethodPatch)
 	s.r.HandleFunc("/users/{id}/balance", s.CheckBalanceHandler).Methods(http.MethodGet)
 
 	return http.ListenAndServe(":"+port, s.r)
 }
 
-func (s *Server) PlusBalanceHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) MoneyTransaction(w http.ResponseWriter, r *http.Request) {
 	var b entity.Balance
 
 	err := json.NewDecoder(r.Body).Decode(&b)
@@ -44,8 +44,15 @@ func (s *Server) PlusBalanceHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	b, err = s.bs.CreditingFunds(b)
+	if b.TypeOp != entity.Plus && b.TypeOp != entity.Minus {
+		w.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	b, err = s.bs.BalanceOperations(b)
 	if err != nil {
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 
 		return
@@ -57,10 +64,7 @@ func (s *Server) PlusBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
-}
 
-func (s *Server) MinusBalanceHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Списания средств с баланса"))
 }
 
 func (s *Server) TransferMoneyHandler(w http.ResponseWriter, r *http.Request) {
