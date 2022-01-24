@@ -20,23 +20,17 @@ func NewBalanceService(s *store.Store) *BalanceService {
 }
 
 func (bs *BalanceService) BalanceOperations(b entity.Balance) (entity.Balance, error) {
-	if b.TypeOp == entity.Plus {
-		_, err := bs.store.SelectUserByID(b.UserID)
-		if err == domain.ErrNotFound {
+	var isPlus = b.TypeOp == entity.Plus
 
-			err := bs.store.InsertUserBalance(b)
-			if err != nil {
-				return entity.Balance{}, err
-			}
+	curB, err := bs.store.SelectUserByID(b.UserID)
+	isNotFound := errors.Is(err, domain.ErrNotFound)
 
-			return b, nil
-		}
+	if isNotFound && !isPlus {
+		return entity.Balance{}, err
+	}
 
-		if err != nil {
-			return entity.Balance{}, err
-		}
-
-		b.Amount, err = bs.store.UpdateUserBalance(b.UserID, b.Amount)
+	if isNotFound && isPlus {
+		err := bs.store.InsertUserBalance(b)
 		if err != nil {
 			return entity.Balance{}, err
 		}
@@ -44,30 +38,25 @@ func (bs *BalanceService) BalanceOperations(b entity.Balance) (entity.Balance, e
 		return b, nil
 	}
 
-	if b.TypeOp == entity.Minus {
-		curB, err := bs.store.SelectUserByID(b.UserID)
-		if errors.Is(err, domain.ErrNotFound) {
-			return entity.Balance{}, err
-		}
-
-		if err != nil {
-			return entity.Balance{}, err
-		}
-
-		stateOfB := curB.Amount - b.Amount
-		if stateOfB < 0 {
-			return entity.Balance{}, domain.ErrEnoughMoney
-		}
-
-		b.Amount, err = bs.store.UpdateUserBalance(b.UserID, -b.Amount)
-		if err != nil {
-			return entity.Balance{}, err
-		}
-
-		return b, nil
+	if err != nil {
+		return entity.Balance{}, err
 	}
 
-	return entity.Balance{}, nil
+	if !isPlus && (curB.Amount-b.Amount) < 0 {
+		return entity.Balance{}, domain.ErrEnoughMoney
+	}
+
+	if !isPlus {
+		b.Amount = -b.Amount
+	}
+
+	b.Amount, err = bs.store.UpdateUserBalance(b.UserID, b.Amount)
+	if err != nil {
+		return entity.Balance{}, err
+	}
+
+	return b, nil
+
 }
 
 func (bs *BalanceService) TransferringFunds(uIdGive, uIdTake, count int) (entity.Balance, error) {
