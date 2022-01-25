@@ -1,19 +1,25 @@
 package service
 
 import (
+	"encoding/json"
 	"errors"
+	"net/http"
 	"user-balance/domain"
 	"user-balance/domain/entity"
 	"user-balance/store"
 )
 
 type BalanceService struct {
-	store *store.Store
+	store  *store.Store
+	apiKey string
 }
 
-func NewBalanceService(s *store.Store) *BalanceService {
+const converterURL = "https://free.currconv.com/api/v7/"
+
+func NewBalanceService(s *store.Store, ak string) *BalanceService {
 	bs := BalanceService{
-		store: s,
+		store:  s,
+		apiKey: ak,
 	}
 
 	return &bs
@@ -22,7 +28,7 @@ func NewBalanceService(s *store.Store) *BalanceService {
 func (bs *BalanceService) BalanceOperations(b entity.Balance) (entity.Balance, error) {
 	var isPlus = b.TypeOp == entity.Plus
 
-	curB, err := bs.store.SelectUserByID(b.UserID)
+	curB, err := bs.store.SelectUserBalanceByID(b.UserID)
 	isNotFound := errors.Is(err, domain.ErrNotFound)
 
 	if isNotFound && !isPlus {
@@ -59,10 +65,73 @@ func (bs *BalanceService) BalanceOperations(b entity.Balance) (entity.Balance, e
 
 }
 
-func (bs *BalanceService) TransferringFunds(uIdGive, uIdTake, count int) (entity.Balance, error) {
-	return entity.Balance{}, nil
+func (bs *BalanceService) TransferringFunds(t entity.Transfer) error {
+	_, err := bs.store.SelectUserBalanceByID(t.IdTake)
+	isNotFound := errors.Is(err, domain.ErrNotFound)
+
+	if err != nil && isNotFound {
+		b := entity.Balance{
+			UserID: t.IdTake,
+			Amount: 0,
+		}
+
+		err := bs.store.InsertUserBalance(b)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err != nil && !isNotFound {
+		return err
+	}
+
+	err = bs.store.TxUpdateUsersBalances(t)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (bs *BalanceService) CurrentBalance(id int) (entity.Balance, error) {
-	return entity.Balance{}, nil
+func (bs *BalanceService) UserBalance(id int, currency string) (entity.Balance, error) {
+	b, err := bs.store.SelectUserBalanceByID(id)
+	if err != nil {
+		return entity.Balance{}, err
+	}
+
+	if currency == "" {
+		return b, nil
+	}
+
+	r, err := http.Get(converterURL + "convert?q=RUB_USD&compact=ultra&apiKey=" + bs.apiKey)
+	if err != nil {
+		return entity.Balance{}, domain.ErrUnavailable
+	}
+
+	defer r.Body.Close()
+
+	if r.StatusCode != http.StatusOK {
+		return entity.Balance{}, domain.ErrUnavailable
+	}
+
+	var data = make(map[string]interface{})
+
+	err = json.NewDecoder(r.Body).Decode(&data)
+	if err != nil {
+		return entity.Balance{}, domain.ErrUnavailable
+	}
+
+	v, ok := data["RUB_USD"]
+	if !ok {
+		return entity.Balance{}, domain.ErrUnavailable
+	}
+
+	curs, ok := v.(float64)
+	if !ok {
+		return entity.Balance{}, domain.ErrUnavailable
+	}
+
+	b.Amount = b.Amount * curs
+
+	return b, nil
 }

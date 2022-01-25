@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"user-balance/domain/entity"
 	"user-balance/domain/service"
 
@@ -27,14 +28,14 @@ func NewServer(bs *service.BalanceService) *Server {
 }
 
 func (s *Server) Start(port string) error {
-	s.r.HandleFunc("/balance", s.MoneyTransaction).Methods(http.MethodPatch)
+	s.r.HandleFunc("/balance", s.MoneyTransactionHandler).Methods(http.MethodPatch)
 	s.r.HandleFunc("/transfer", s.TransferMoneyHandler).Methods(http.MethodPatch)
 	s.r.HandleFunc("/users/{id}/balance", s.CheckBalanceHandler).Methods(http.MethodGet)
 
 	return http.ListenAndServe(":"+port, s.r)
 }
 
-func (s *Server) MoneyTransaction(w http.ResponseWriter, r *http.Request) {
+func (s *Server) MoneyTransactionHandler(w http.ResponseWriter, r *http.Request) {
 	var b entity.Balance
 
 	err := json.NewDecoder(r.Body).Decode(&b)
@@ -68,9 +69,46 @@ func (s *Server) MoneyTransaction(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) TransferMoneyHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Перевода средств от пользователя к пользователю"))
+	var t entity.Transfer
+
+	err := json.NewDecoder(r.Body).Decode(&t)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	if t.Amount <= 0 {
+		w.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	err = s.bs.TransferringFunds(t)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
 }
 
 func (s *Server) CheckBalanceHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Получения текущего баланса пользователя"))
+	currency := r.URL.Query().Get("currency")
+
+	id, _ := strconv.Atoi(mux.Vars(r)["id"])
+
+	b, err := s.bs.UserBalance(id, currency)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(b)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
 }

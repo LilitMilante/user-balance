@@ -24,7 +24,7 @@ func main() {
 	defer db.Close()
 
 	s := store.NewStore(db)
-	bs := service.NewBalanceService(s)
+	bs := service.NewBalanceService(s, c.ApiKey)
 	srv := handlers.NewServer(bs)
 	err = srv.Start(c.HttpPort)
 	if err != nil {

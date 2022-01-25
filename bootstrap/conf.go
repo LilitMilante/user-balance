@@ -14,6 +14,7 @@ type Config struct {
 	DbHost     string
 	DbPort     string
 	HttpPort   string
+	ApiKey     string
 }
 
 func NewConfig() (*Config, error) {
@@ -30,6 +31,7 @@ func NewConfig() (*Config, error) {
 		DbHost:     os.Getenv("DB_HOST"),
 		DbPort:     os.Getenv("DB_PORT"),
 		HttpPort:   os.Getenv("HTTP_PORT"),
+		ApiKey:     os.Getenv("API_KEY"),
 	}
 
 	return &c, nil

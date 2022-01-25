@@ -19,7 +19,7 @@ func NewStore(db *sql.DB) *Store {
 	return &s
 }
 
-func (s *Store) SelectUserByID(id int) (entity.Balance, error) {
+func (s *Store) SelectUserBalanceByID(id int) (entity.Balance, error) {
 	var b entity.Balance
 
 	err := s.db.QueryRow("SELECT user_id, amount FROM users_balances WHERE user_id = $1", id).Scan(&b.UserID, &b.Amount)
@@ -44,7 +44,7 @@ func (s *Store) InsertUserBalance(b entity.Balance) error {
 	return nil
 }
 
-func (s *Store) UpdateUserBalance(id, sum int) (int, error) {
+func (s *Store) UpdateUserBalance(id int, sum float64) (float64, error) {
 	var b entity.Balance
 
 	err := s.db.QueryRow("UPDATE users_balances SET amount = amount + $1 WHERE user_id = $2 RETURNING amount", sum, id).Scan(&b.Amount)
@@ -55,4 +55,36 @@ func (s *Store) UpdateUserBalance(id, sum int) (int, error) {
 	b.UserID = id
 
 	return b.Amount, nil
+}
+
+func (s *Store) TxUpdateUsersBalances(t entity.Transfer) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	var curSum int
+
+	err = tx.QueryRow("UPDATE users_balances SET amount = amount - $1 WHERE user_id = $2 RETURNING amount", t.Amount, t.IdGive).Scan(&curSum)
+	if err != nil {
+		return err
+	}
+
+	if curSum < 0 {
+		return domain.ErrEnoughMoney
+	}
+
+	_, err = tx.Exec("UPDATE users_balances SET amount = amount + $1 WHERE user_id = $2", t.Amount, t.IdTake)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
