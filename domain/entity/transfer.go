@@ -1,7 +1,7 @@
 package entity
 
 type Transfer struct {
-	IdGive int `json:"id_give"`
-	IdTake int `json:"id_take"`
-	Amount int `json:"amount"`
+	IdGive int64 `json:"id_give"`
+	IdTake int64 `json:"id_take"`
+	Amount int64 `json:"amount"`
 }

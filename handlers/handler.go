@@ -96,7 +96,10 @@ func (s *Server) TransferMoneyHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) CheckBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	currency := r.URL.Query().Get("currency")
 
-	id, _ := strconv.Atoi(mux.Vars(r)["id"])
+	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+	}
 
 	b, err := s.bs.UserBalance(id, currency)
 	if err != nil {
@@ -111,4 +114,8 @@ func (s *Server) CheckBalanceHandler(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+}
+
+func (s *Server) UserTransactionsList(w http.ResponseWriter, r *http.Request) {
+
 }

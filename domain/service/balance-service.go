@@ -93,7 +93,7 @@ func (bs *BalanceService) TransferringFunds(t entity.Transfer) error {
 	return nil
 }
 
-func (bs *BalanceService) UserBalance(id int, currency string) (entity.Balance, error) {
+func (bs *BalanceService) UserBalance(id int64, currency string) (entity.Balance, error) {
 	b, err := bs.store.SelectUserBalanceByID(id)
 	if err != nil {
 		return entity.Balance{}, err
@@ -131,7 +131,7 @@ func (bs *BalanceService) UserBalance(id int, currency string) (entity.Balance, 
 		return entity.Balance{}, domain.ErrUnavailable
 	}
 
-	b.Amount = b.Amount * curs
+	b.Amount = int64(float64(b.Amount) * curs)
 
 	return b, nil
 }

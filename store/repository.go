@@ -19,7 +19,7 @@ func NewStore(db *sql.DB) *Store {
 	return &s
 }
 
-func (s *Store) SelectUserBalanceByID(id int) (entity.Balance, error) {
+func (s *Store) SelectUserBalanceByID(id int64) (entity.Balance, error) {
 	var b entity.Balance
 
 	err := s.db.QueryRow("SELECT user_id, amount FROM users_balances WHERE user_id = $1", id).Scan(&b.UserID, &b.Amount)
@@ -44,7 +44,7 @@ func (s *Store) InsertUserBalance(b entity.Balance) error {
 	return nil
 }
 
-func (s *Store) UpdateUserBalance(id int, sum float64) (float64, error) {
+func (s *Store) UpdateUserBalance(id int64, sum int64) (int64, error) {
 	var b entity.Balance
 
 	err := s.db.QueryRow("UPDATE users_balances SET amount = amount + $1 WHERE user_id = $2 RETURNING amount", sum, id).Scan(&b.Amount)
