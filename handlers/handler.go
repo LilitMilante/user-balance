@@ -31,6 +31,7 @@ func (s *Server) Start(port string) error {
 	s.r.HandleFunc("/balance", s.MoneyTransactionHandler).Methods(http.MethodPatch)
 	s.r.HandleFunc("/transfer", s.TransferMoneyHandler).Methods(http.MethodPatch)
 	s.r.HandleFunc("/users/{id}/balance", s.CheckBalanceHandler).Methods(http.MethodGet)
+	s.r.HandleFunc("/users/{id}/transactions", s.UserTransactions).Methods(http.MethodGet)
 
 	return http.ListenAndServe(":"+port, s.r)
 }
@@ -116,6 +117,25 @@ func (s *Server) CheckBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) UserTransactionsList(w http.ResponseWriter, r *http.Request) {
+func (s *Server) UserTransactions(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
 
+		return
+	}
+
+	b, err := s.bs.Transactions(id)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(b)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
 }

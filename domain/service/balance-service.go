@@ -36,7 +36,7 @@ func (bs *BalanceService) BalanceOperations(b entity.Balance) (entity.Balance, e
 	}
 
 	if isNotFound && isPlus {
-		err := bs.store.InsertUserBalance(b)
+		err := bs.store.InsertUserTransactions(b)
 		if err != nil {
 			return entity.Balance{}, err
 		}
@@ -56,7 +56,7 @@ func (bs *BalanceService) BalanceOperations(b entity.Balance) (entity.Balance, e
 		b.Amount = -b.Amount
 	}
 
-	b.Amount, err = bs.store.UpdateUserBalance(b.UserID, b.Amount)
+	b.Amount, err = bs.store.UpdateUserTransactions(b)
 	if err != nil {
 		return entity.Balance{}, err
 	}
@@ -134,4 +134,17 @@ func (bs *BalanceService) UserBalance(id int64, currency string) (entity.Balance
 	b.Amount = int64(float64(b.Amount) * curs)
 
 	return b, nil
+}
+
+func (bs BalanceService) Transactions(uID int64) ([]entity.Balance, error) {
+	ts, err := bs.store.SelectUserTransactions(uID)
+	if err != nil && errors.Is(err, domain.ErrNotFound) {
+		return make([]entity.Balance, 0), nil
+	}
+
+	if err != nil {
+		return nil, domain.ErrUnavailable
+	}
+
+	return ts, nil
 }

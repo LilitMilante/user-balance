@@ -1,9 +1,10 @@
 package entity
 
 type Balance struct {
-	UserID int64 `json:"user_id"`
-	Amount int64 `json:"amount"`
-	TypeOp int   `json:"type_op,omitempty"`
+	UserID      int64  `json:"user_id"`
+	Amount      int64  `json:"amount"`
+	TypeOp      int    `json:"type_op,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
 const (
