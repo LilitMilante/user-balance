@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"user-balance/domain"
 	"user-balance/domain/entity"
@@ -84,6 +85,9 @@ func (bs *BalanceService) TransferringFunds(t entity.Transfer) error {
 	if err != nil && !isNotFound {
 		return err
 	}
+
+	t.DescriptionSender = fmt.Sprintf("Перевод средств пользователю: %d", t.IdTake)
+	t.DescriptionRecipient = fmt.Sprintf("Зачисление средств от пользователя: %d", t.IdGive)
 
 	err = bs.store.TxUpdateUsersBalances(t)
 	if err != nil {

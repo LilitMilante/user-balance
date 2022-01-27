@@ -60,6 +60,9 @@ func (s *Server) MoneyTransactionHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	b.TypeOp = 0
+	b.Description = ""
+
 	w.WriteHeader(http.StatusOK)
 
 	err = json.NewEncoder(w).Encode(b)

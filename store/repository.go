@@ -66,18 +66,37 @@ func (s *Store) TxUpdateUsersBalances(t entity.Transfer) error {
 
 	defer tx.Rollback()
 
-	var curSum int
+	var curSum int64
 
-	err = tx.QueryRow("UPDATE users_balances SET amount = amount - $1 WHERE user_id = $2 RETURNING amount", t.Amount, t.IdGive).Scan(&curSum)
+	err = tx.QueryRow("SELECT amount FROM users_balances WHERE user_id = $1", t.IdTake).Scan(&curSum)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return domain.ErrNotFound
+		}
+
+		return err
+	}
+
+	if (curSum - t.Amount) < 0 {
+		return domain.ErrEnoughMoney
+	}
+
+	_, err = tx.Exec("UPDATE users_balances SET amount = amount - $1 WHERE user_id = $2", t.Amount, t.IdGive)
 	if err != nil {
 		return err
 	}
 
-	if curSum < 0 {
-		return domain.ErrEnoughMoney
+	_, err = tx.Exec("INSERT INTO users_transactions (user_id, amount, type_op, description) VALUES ($1, $2, $3, $4)", t.IdGive, t.Amount, entity.Minus, t.DescriptionSender)
+	if err != nil {
+		return err
 	}
 
 	_, err = tx.Exec("UPDATE users_balances SET amount = amount + $1 WHERE user_id = $2", t.Amount, t.IdTake)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec("INSERT INTO users_transactions (user_id, amount, type_op, description) VALUES ($1, $2, $3, $4)", t.IdTake, t.Amount, entity.Plus, t.DescriptionRecipient)
 	if err != nil {
 		return err
 	}
