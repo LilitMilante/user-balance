@@ -29,7 +29,7 @@ func NewBalanceService(s *store.Store, ak string) *BalanceService {
 func (bs *BalanceService) BalanceOperations(b entity.Balance) (entity.Balance, error) {
 	var isPlus = b.TypeOp == entity.Plus
 
-	curB, err := bs.store.SelectUserBalanceByID(b.UserID)
+	curB, err := bs.store.SelectUserBalanceByID(b.IDSender)
 	isNotFound := errors.Is(err, domain.ErrNotFound)
 
 	if isNotFound && !isPlus {
@@ -67,13 +67,13 @@ func (bs *BalanceService) BalanceOperations(b entity.Balance) (entity.Balance, e
 }
 
 func (bs *BalanceService) TransferringFunds(t entity.Transfer) error {
-	_, err := bs.store.SelectUserBalanceByID(t.IdTake)
+	_, err := bs.store.SelectUserBalanceByID(t.IDRecipient)
 	isNotFound := errors.Is(err, domain.ErrNotFound)
 
 	if err != nil && isNotFound {
 		b := entity.Balance{
-			UserID: t.IdTake,
-			Amount: 0,
+			IDSender: t.IDRecipient,
+			Amount:   0,
 		}
 
 		err := bs.store.InsertUserBalance(b)
@@ -86,8 +86,8 @@ func (bs *BalanceService) TransferringFunds(t entity.Transfer) error {
 		return err
 	}
 
-	t.DescriptionSender = fmt.Sprintf("Перевод средств пользователю: %d", t.IdTake)
-	t.DescriptionRecipient = fmt.Sprintf("Зачисление средств от пользователя: %d", t.IdGive)
+	t.DescriptionSender = fmt.Sprintf("Перевод средств пользователю: %d", t.IDRecipient)
+	t.DescriptionRecipient = fmt.Sprintf("Зачисление средств от пользователя: %d", t.IDSender)
 
 	err = bs.store.TxUpdateUsersBalances(t)
 	if err != nil {

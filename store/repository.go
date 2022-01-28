@@ -22,7 +22,7 @@ func NewStore(db *sql.DB) *Store {
 func (s *Store) SelectUserBalanceByID(id int64) (entity.Balance, error) {
 	var b entity.Balance
 
-	err := s.db.QueryRow("SELECT user_id, amount FROM users_balances WHERE user_id = $1", id).Scan(&b.UserID, &b.Amount)
+	err := s.db.QueryRow("SELECT user_id, amount FROM users_balances WHERE user_id = $1", id).Scan(&b.IDSender, &b.Amount)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return b, domain.ErrNotFound
@@ -36,7 +36,7 @@ func (s *Store) SelectUserBalanceByID(id int64) (entity.Balance, error) {
 }
 
 func (s *Store) InsertUserBalance(b entity.Balance) error {
-	_, err := s.db.Exec("INSERT INTO users_balances (user_id, amount) VALUES ($1, $2)", b.UserID, b.Amount)
+	_, err := s.db.Exec("INSERT INTO users_balances (user_id, amount) VALUES ($1, $2)", b.IDSender, b.Amount)
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (s *Store) InsertUserBalance(b entity.Balance) error {
 //		return b.Amount, err
 //	}
 //
-//	b.UserID = id
+//	b.IDSender = id
 //
 //	return b.Amount, nil
 //}
@@ -68,7 +68,7 @@ func (s *Store) TxUpdateUsersBalances(t entity.Transfer) error {
 
 	var curSum int64
 
-	err = tx.QueryRow("SELECT amount FROM users_balances WHERE user_id = $1", t.IdTake).Scan(&curSum)
+	err = tx.QueryRow("SELECT amount FROM users_balances WHERE user_id = $1", t.IDRecipient).Scan(&curSum)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			return domain.ErrNotFound
@@ -81,22 +81,22 @@ func (s *Store) TxUpdateUsersBalances(t entity.Transfer) error {
 		return domain.ErrEnoughMoney
 	}
 
-	_, err = tx.Exec("UPDATE users_balances SET amount = amount - $1 WHERE user_id = $2", t.Amount, t.IdGive)
+	_, err = tx.Exec("UPDATE users_balances SET amount = amount - $1 WHERE user_id = $2", t.Amount, t.IDSender)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec("INSERT INTO users_transactions (user_id, amount, type_op, description) VALUES ($1, $2, $3, $4)", t.IdGive, t.Amount, entity.Minus, t.DescriptionSender)
+	_, err = tx.Exec("INSERT INTO users_transactions (user_id, amount, type_op, description) VALUES ($1, $2, $3, $4)", t.IDSender, t.Amount, entity.Minus, t.DescriptionSender)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec("UPDATE users_balances SET amount = amount + $1 WHERE user_id = $2", t.Amount, t.IdTake)
+	_, err = tx.Exec("UPDATE users_balances SET amount = amount + $1 WHERE user_id = $2", t.Amount, t.IDRecipient)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec("INSERT INTO users_transactions (user_id, amount, type_op, description) VALUES ($1, $2, $3, $4)", t.IdTake, t.Amount, entity.Plus, t.DescriptionRecipient)
+	_, err = tx.Exec("INSERT INTO users_transactions (user_id, amount, type_op, description) VALUES ($1, $2, $3, $4)", t.IDRecipient, t.Amount, entity.Plus, t.DescriptionRecipient)
 	if err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func (s *Store) SelectUserTransactions(uID int64) ([]entity.Balance, error) {
 	for rows.Next() {
 		var t entity.Balance
 
-		err := rows.Scan(&t.UserID, &t.Amount, &t.TypeOp, &t.Description)
+		err := rows.Scan(&t.IDSender, &t.Amount, &t.TypeOp, &t.Description)
 		if err != nil {
 			return nil, err
 		}
@@ -151,12 +151,12 @@ func (s *Store) InsertUserTransactions(b entity.Balance) error {
 
 	defer tx.Rollback()
 
-	_, err = s.db.Exec("INSERT INTO users_balances (user_id, amount) VALUES ($1, $2)", b.UserID, b.Amount)
+	_, err = s.db.Exec("INSERT INTO users_balances (user_id, amount) VALUES ($1, $2)", b.IDSender, b.Amount)
 	if err != nil {
 		return err
 	}
 
-	_, err = s.db.Exec("INSERT INTO users_transactions (user_id, amount, type_op, description) VALUES ($1, $2, $3, $4)", b.UserID, b.Amount, b.TypeOp, b.Description)
+	_, err = s.db.Exec("INSERT INTO users_transactions (user_id, amount, type_op, description) VALUES ($1, $2, $3, $4)", b.IDSender, b.Amount, b.TypeOp, b.Description)
 	if err != nil {
 		return err
 	}
@@ -177,12 +177,12 @@ func (s *Store) UpdateUserTransactions(b entity.Balance) (int64, error) {
 
 	defer tx.Rollback()
 
-	err = s.db.QueryRow("UPDATE users_balances SET amount = amount + $1 WHERE user_id = $2 RETURNING amount", b.Amount, b.UserID).Scan(&b.Amount)
+	err = s.db.QueryRow("UPDATE users_balances SET amount = amount + $1 WHERE user_id = $2 RETURNING amount", b.Amount, b.IDSender).Scan(&b.Amount)
 	if err != nil {
 		return b.Amount, err
 	}
 
-	_, err = s.db.Exec("INSERT INTO users_transactions (user_id, amount, type_op, description) VALUES ($1, $2, $3, $4)", b.UserID, b.Amount, b.TypeOp, b.Description)
+	_, err = s.db.Exec("INSERT INTO users_transactions (user_id, amount, type_op, description) VALUES ($1, $2, $3, $4)", b.IDSender, b.Amount, b.TypeOp, b.Description)
 	if err != nil {
 		return b.Amount, err
 	}
