@@ -17,11 +17,11 @@ components:
         amount:
           type: integer
           example: 1000
-        type_op:
+        event:
           description: Тип операции (зачисление или списание средств)
           type: integer
           minimum: 1
-          maximum: 2
+          maximum: 3
           example: 1
         transfer_id:
           type: integer

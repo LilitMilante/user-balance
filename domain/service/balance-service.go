@@ -3,8 +3,8 @@ package service
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
+	"time"
 	"user-balance/domain"
 	"user-balance/domain/entity"
 	"user-balance/store"
@@ -26,31 +26,81 @@ func NewBalanceService(s *store.Store, ak string) *BalanceService {
 	return &bs
 }
 
-func (bs *BalanceService) BalanceOperations(b entity.Balance) (entity.Balance, error) {
-	var isPlus = b.TypeOp == entity.Plus
+func (bs *BalanceService) TransferMoney(t entity.Transaction) (entity.Transaction, error) {
+	var isPlus = t.Event == entity.EventCrediting
 
-	curB, err := bs.store.SelectUserBalanceByID(b.IDSender)
+	t.CreatedAt = time.Now().UTC()
+
+	if t.Event == entity.EventTransfer {
+		err := bs.transferringFunds(t)
+		if err != nil {
+			return entity.Transaction{}, err
+		}
+	}
+
+	curB, err := bs.store.SelectUserBalanceByID(t.UserID)
 	isNotFound := errors.Is(err, domain.ErrNotFound)
 
 	if isNotFound && !isPlus {
-		return entity.Balance{}, err
+		return entity.Transaction{}, err
+	}
+
+	if isNotFound && isPlus {
+		err := bs.store.InsertUserTransactions(t)
+		if err != nil {
+			return entity.Transaction{}, err
+		}
+
+		return t, nil
+	}
+
+	if err != nil {
+		return entity.Transaction{}, err
+	}
+
+	if !isPlus && (curB.Amount-t.Amount) < 0 {
+		return entity.Transaction{}, domain.ErrEnoughMoney
+	}
+
+	if !isPlus {
+		t.Amount = -t.Amount
+	}
+
+	t.Amount, err = bs.store.UpdateUserTransactions(t)
+	if err != nil {
+		return entity.Transaction{}, err
+	}
+
+	return t, nil
+}
+
+//старые методы
+
+func (bs *BalanceService) BalanceOperations(b entity.Transaction) (entity.Transaction, error) {
+	var isPlus = b.Event == entity.EventCrediting
+
+	curB, err := bs.store.SelectUserBalanceByID(b.UserID)
+	isNotFound := errors.Is(err, domain.ErrNotFound)
+
+	if isNotFound && !isPlus {
+		return entity.Transaction{}, err
 	}
 
 	if isNotFound && isPlus {
 		err := bs.store.InsertUserTransactions(b)
 		if err != nil {
-			return entity.Balance{}, err
+			return entity.Transaction{}, err
 		}
 
 		return b, nil
 	}
 
 	if err != nil {
-		return entity.Balance{}, err
+		return entity.Transaction{}, err
 	}
 
 	if !isPlus && (curB.Amount-b.Amount) < 0 {
-		return entity.Balance{}, domain.ErrEnoughMoney
+		return entity.Transaction{}, domain.ErrEnoughMoney
 	}
 
 	if !isPlus {
@@ -59,21 +109,21 @@ func (bs *BalanceService) BalanceOperations(b entity.Balance) (entity.Balance, e
 
 	b.Amount, err = bs.store.UpdateUserTransactions(b)
 	if err != nil {
-		return entity.Balance{}, err
+		return entity.Transaction{}, err
 	}
 
 	return b, nil
 
 }
 
-func (bs *BalanceService) TransferringFunds(t entity.Transfer) error {
-	_, err := bs.store.SelectUserBalanceByID(t.IDRecipient)
+func (bs *BalanceService) transferringFunds(t entity.Transaction) error {
+	_, err := bs.store.SelectUserBalanceByID(t.UserID)
 	isNotFound := errors.Is(err, domain.ErrNotFound)
 
 	if err != nil && isNotFound {
 		b := entity.Balance{
-			IDSender: t.IDRecipient,
-			Amount:   0,
+			UserID: t.UserID,
+			Amount: 0,
 		}
 
 		err := bs.store.InsertUserBalance(b)
@@ -85,9 +135,6 @@ func (bs *BalanceService) TransferringFunds(t entity.Transfer) error {
 	if err != nil && !isNotFound {
 		return err
 	}
-
-	t.DescriptionSender = fmt.Sprintf("Перевод средств пользователю: %d", t.IDRecipient)
-	t.DescriptionRecipient = fmt.Sprintf("Зачисление средств от пользователя: %d", t.IDSender)
 
 	err = bs.store.TxUpdateUsersBalances(t)
 	if err != nil {
@@ -140,10 +187,10 @@ func (bs *BalanceService) UserBalance(id int64, currency string) (entity.Balance
 	return b, nil
 }
 
-func (bs BalanceService) Transactions(uID int64) ([]entity.Balance, error) {
+func (bs BalanceService) Transactions(uID int64) ([]entity.Transaction, error) {
 	ts, err := bs.store.SelectUserTransactions(uID)
 	if err != nil && errors.Is(err, domain.ErrNotFound) {
-		return make([]entity.Balance, 0), nil
+		return make([]entity.Transaction, 0), nil
 	}
 
 	if err != nil {
