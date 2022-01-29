@@ -66,14 +66,13 @@ paths:
             application/json:
               schema:
                 type: object
-                items:
-                  properties:
-                    user_id:
-                      type: integer
-                      example: 1
-                    amount:
-                      type: integer
-                      example: 1000
+                properties:
+                  user_id:
+                    type: integer
+                    example: 1
+                  amount:
+                    type: integer
+                    example: 1000
 
   /users/{id}/transactions:
     description: Маршрут для работы с транзакциями пользователей
