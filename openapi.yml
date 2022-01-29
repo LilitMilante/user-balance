@@ -2,6 +2,44 @@ openapi: "3.0.0"
 info:
   title: User Balance API
   version: "1.0.0"
+components:
+  schemas:
+    transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          example: 505
+        user_id:
+          type: integer
+          example: 5
+        amount:
+          type: integer
+          example: 1000
+        type_op:
+          description: Тип операции (зачисление или списание средств)
+          type: integer
+          minimum: 1
+          maximum: 2
+          example: 1
+        transfer_id:
+          type: integer
+          example: 15
+        message:
+          type: string
+          example: Перевод заработной платы
+        created_at:
+          type: string
+          readOnly: true
+          example: 01.01.2022 21:57:05
+      required:
+        - id
+        - user_id
+        - amount
+        - type_op
+        - transfer_id
+        - created_at
 paths:
   /users/{id}/balance:
     description: Маршрут для работы с балансом пользователей
@@ -14,6 +52,13 @@ paths:
           schema:
             type: integer
             example: 1
+        - in: query
+          name: currency
+          schema:
+            type: string
+            example: USD
+            enum:
+              - USD
       responses:
         "200":
           description: OK Response
@@ -50,43 +95,21 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/transaction'
-components:
-  schemas:
-    transaction:
-      type: object
-      properties:
-        id:
-          type: integer
-          example: 505
-        user_id:
-          type: integer
-          example: 5
-        amount:
-          type: integer
-          example: 1000
-        type_op:
-          description: Тип операции (зачисление или списание средств)
-          type: integer
-          minimum: 1
-          maximum: 2
-          example: 1
-        transfer_id:
-          type: integer
-          example: 15
-        message:
-          type: string
-          example: Перевод зарвботной платы
-        created_at:
-          type: string
-          example: 01.01.2022 21:57:05
-
-
-
-
-
-
-
-
-
+  /transactions:
+    description: Маршрут для работы с переводами средств
+    post:
+      description: Creates/edits a transaction
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/transaction'
+      responses:
+        "200":
+          description: OK Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/transaction'
 
 

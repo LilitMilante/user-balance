@@ -29,7 +29,7 @@ func NewServer(bs *service.BalanceService) *Server {
 
 func (s *Server) Start(port string) error {
 	s.r.HandleFunc("/balance", s.MoneyTransactionHandler).Methods(http.MethodPatch)
-	s.r.HandleFunc("/transfer", s.TransferMoneyHandler).Methods(http.MethodPatch)
+	s.r.HandleFunc("/transactions", s.TransferMoneyHandler).Methods(http.MethodPost)
 	s.r.HandleFunc("/users/{id}/balance", s.CheckBalanceHandler).Methods(http.MethodGet)
 	s.r.HandleFunc("/users/{id}/transactions", s.UserTransactions).Methods(http.MethodGet)
 
