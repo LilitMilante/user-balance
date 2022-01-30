@@ -33,7 +33,7 @@ components:
           example: Перевод заработной платы
         created_at:
           type: string
-          readOnly: true
+#          readOnly: true
           example: "01.01.2022 21:57:05"
       required:
         - id
