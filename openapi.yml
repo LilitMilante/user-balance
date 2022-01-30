@@ -2,6 +2,8 @@ openapi: "3.0.0"
 info:
   title: User Balance API
   version: "1.0.0"
+servers:
+  - url: http://localhost:8080
 components:
   schemas:
     transaction:
