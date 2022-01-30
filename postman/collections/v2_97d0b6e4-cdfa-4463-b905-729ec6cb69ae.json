@@ -1,0 +1,243 @@
+{
+    "info": {
+        "_postman_id": "59f25773-a6ed-4d63-960e-84d137bd010b",
+        "name": "v2",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "users/{id}",
+            "item": [
+                {
+                    "name": "/users/:id/balance",
+                    "id": "c76b5ff4-6a53-459c-b5fa-3da177ebb4db",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/users/:id/balance?currency=USD",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "users",
+                                ":id",
+                                "balance"
+                            ],
+                            "query": [
+                                {
+                                    "key": "currency",
+                                    "value": "USD"
+                                }
+                            ],
+                            "variable": [
+                                {
+                                    "id": "97a16796-0553-4e1e-ab23-e6ff626d7c92",
+                                    "key": "id",
+                                    "value": "1",
+                                    "description": "(Required) "
+                                }
+                            ]
+                        },
+                        "description": "Returns balance by user ID"
+                    },
+                    "response": [
+                        {
+                            "id": "e43c0414-4191-43df-960d-8875341b406f",
+                            "name": "OK Response",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/users/:id/balance?currency=USD",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "users",
+                                        ":id",
+                                        "balance"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "currency",
+                                            "value": "USD"
+                                        }
+                                    ],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "1",
+                                            "description": "(Required) "
+                                        }
+                                    ]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "responseTime": null,
+                            "body": "{\n \"user_id\": 1,\n \"amount\": 1000\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "/users/:id/transactions",
+                    "id": "f2b14e50-074a-42b1-bad5-0f88420d2e34",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/users/:id/transactions",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "users",
+                                ":id",
+                                "transactions"
+                            ],
+                            "variable": [
+                                {
+                                    "id": "7f2c2b21-1cfb-498f-871a-06f485f3d424",
+                                    "key": "id",
+                                    "value": "1",
+                                    "description": "(Required) "
+                                }
+                            ]
+                        },
+                        "description": "Returns transactions by user ID"
+                    },
+                    "response": [
+                        {
+                            "id": "69ca216b-6490-432f-b328-c712ec557901",
+                            "name": "OK Response",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/users/:id/transactions",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "users",
+                                        ":id",
+                                        "transactions"
+                                    ],
+                                    "variable": [
+                                        {
+                                            "key": "id",
+                                            "value": "1",
+                                            "description": "(Required) "
+                                        }
+                                    ]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "cookie": [],
+                            "responseTime": null,
+                            "body": "[\n {\n  \"id\": 505,\n  \"user_id\": 5,\n  \"amount\": 1000,\n  \"event\": 1,\n  \"transfer_id\": 15,\n  \"created_at\": \"01.01.2022 21:57:05\",\n  \"message\": \"Перевод заработной платы\"\n },\n {\n  \"id\": 505,\n  \"user_id\": 5,\n  \"amount\": 1000,\n  \"event\": 1,\n  \"transfer_id\": 15,\n  \"created_at\": \"01.01.2022 21:57:05\",\n  \"message\": \"Перевод заработной платы\"\n }\n]"
+                        }
+                    ]
+                }
+            ],
+            "id": "38130e4e-aeb1-4842-80d7-fd3c9c4e3a2d"
+        },
+        {
+            "name": "/transactions",
+            "id": "795f1e74-cd69-4c3b-9e2b-40fab357b51e",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"user_id\": 5,\n    \"amount\": 1000,\n    \"event\": 1,\n    \"transfer_id\": 15,\n    \"message\": \"Перевод заработной платы\",\n    \"veniam5d\": -13619912\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/transactions",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "transactions"
+                    ]
+                },
+                "description": "Creates/edits a transaction"
+            },
+            "response": [
+                {
+                    "id": "9090246e-7df8-46cf-9729-5278695ec907",
+                    "name": "OK Response",
+                    "originalRequest": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"user_id\": 5,\n    \"amount\": 1000,\n    \"event\": 1,\n    \"transfer_id\": 15,\n    \"message\": \"Перевод заработной платы\",\n    \"veniam5d\": -13619912\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/transactions",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "transactions"
+                            ]
+                        }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "cookie": [],
+                    "responseTime": null,
+                    "body": "{\n \"id\": 505,\n \"user_id\": 5,\n \"amount\": 1000,\n \"event\": 1,\n \"transfer_id\": 15,\n \"created_at\": \"01.01.2022 21:57:05\",\n \"message\": \"Перевод заработной платы\"\n}"
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "id": "961c2ccd-658b-4efa-8811-ff83d6707c1c",
+            "key": "baseUrl",
+            "value": "http://localhost:8080",
+            "type": "string"
+        }
+    ]
+}
