@@ -39,7 +39,7 @@ components:
         - id
         - user_id
         - amount
-        - type_op
+        - event
         - transfer_id
         - created_at
 paths:
