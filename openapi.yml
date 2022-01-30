@@ -31,17 +31,17 @@ components:
         message:
           type: string
           example: Перевод заработной платы
-        created_at:
-          type: string
-          readOnly: true
-          example: '01.01.2022 21:57:05'
+#        created_at:
+#          type: string
+#          readOnly: true
+#          example: '01.01.2022 21:57:05'
       required:
         - id
         - user_id
         - amount
         - event
         - transfer_id
-        - created_at
+#        - created_at
 paths:
   /users/{id}/balance:
     description: Маршрут для работы с балансом пользователей
