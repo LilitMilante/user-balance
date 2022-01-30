@@ -34,7 +34,7 @@ components:
         created_at:
           type: string
           readOnly: true
-          example: 01.01.2022 21:57:05
+          example: '01.01.2022 21:57:05'
       required:
         - id
         - user_id
