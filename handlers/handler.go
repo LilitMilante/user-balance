@@ -28,7 +28,7 @@ func NewServer(bs *service.BalanceService) *Server {
 }
 
 func (s *Server) Start(port string) error {
-	s.r.HandleFunc("/balance", s.MoneyTransactionHandler).Methods(http.MethodPatch)
+	s.r.HandleFunc("/transactions", s.MoneyTransactionHandler).Methods(http.MethodPatch)
 	s.r.HandleFunc("/users/{id}/balance", s.CheckBalanceHandler).Methods(http.MethodGet)
 	s.r.HandleFunc("/users/{id}/transactions", s.UserTransactions).Methods(http.MethodGet)
 
@@ -36,22 +36,22 @@ func (s *Server) Start(port string) error {
 }
 
 func (s *Server) MoneyTransactionHandler(w http.ResponseWriter, r *http.Request) {
-	var b entity.Transaction
+	var t entity.Transaction
 
-	err := json.NewDecoder(r.Body).Decode(&b)
+	err := json.NewDecoder(r.Body).Decode(&t)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
-	if b.Event != entity.EventCrediting && b.Event != entity.EventWriteOffs {
+	if t.Event != entity.EventCrediting && t.Event != entity.EventWriteOffs && t.Event != entity.EventTransfer {
 		w.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
-	b, err = s.bs.BalanceOperations(b)
+	t, err = s.bs.TransferMoney(t)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -59,12 +59,7 @@ func (s *Server) MoneyTransactionHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	b.Event = 0
-	b.Message = ""
-
-	w.WriteHeader(http.StatusOK)
-
-	err = json.NewEncoder(w).Encode(b)
+	err = json.NewEncoder(w).Encode(t)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
@@ -102,14 +97,14 @@ func (s *Server) UserTransactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	b, err := s.bs.Transactions(id)
+	t, err := s.bs.Transactions(id)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 
 		return
 	}
 
-	err = json.NewEncoder(w).Encode(b)
+	err = json.NewEncoder(w).Encode(t)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 

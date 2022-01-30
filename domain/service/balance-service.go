@@ -74,48 +74,6 @@ func (bs *BalanceService) TransferMoney(t entity.Transaction) (entity.Transactio
 	return t, nil
 }
 
-//старые методы
-
-func (bs *BalanceService) BalanceOperations(b entity.Transaction) (entity.Transaction, error) {
-	var isPlus = b.Event == entity.EventCrediting
-
-	curB, err := bs.store.SelectUserBalanceByID(b.UserID)
-	isNotFound := errors.Is(err, domain.ErrNotFound)
-
-	if isNotFound && !isPlus {
-		return entity.Transaction{}, err
-	}
-
-	if isNotFound && isPlus {
-		err := bs.store.InsertUserTransactions(b)
-		if err != nil {
-			return entity.Transaction{}, err
-		}
-
-		return b, nil
-	}
-
-	if err != nil {
-		return entity.Transaction{}, err
-	}
-
-	if !isPlus && (curB.Amount-b.Amount) < 0 {
-		return entity.Transaction{}, domain.ErrEnoughMoney
-	}
-
-	if !isPlus {
-		b.Amount = -b.Amount
-	}
-
-	b.Amount, err = bs.store.UpdateUserTransactions(b)
-	if err != nil {
-		return entity.Transaction{}, err
-	}
-
-	return b, nil
-
-}
-
 func (bs *BalanceService) transferringFunds(t entity.Transaction) error {
 	_, err := bs.store.SelectUserBalanceByID(t.UserID)
 	isNotFound := errors.Is(err, domain.ErrNotFound)
@@ -142,6 +100,19 @@ func (bs *BalanceService) transferringFunds(t entity.Transaction) error {
 	}
 
 	return nil
+}
+
+func (bs BalanceService) Transactions(uID int64) ([]entity.Transaction, error) {
+	ts, err := bs.store.SelectUserTransactions(uID)
+	if err != nil && errors.Is(err, domain.ErrNotFound) {
+		return make([]entity.Transaction, 0), nil
+	}
+
+	if err != nil {
+		return nil, domain.ErrUnavailable
+	}
+
+	return ts, nil
 }
 
 func (bs *BalanceService) UserBalance(id int64, currency string) (entity.Balance, error) {
@@ -185,17 +156,4 @@ func (bs *BalanceService) UserBalance(id int64, currency string) (entity.Balance
 	b.Amount = int64(float64(b.Amount) * curs)
 
 	return b, nil
-}
-
-func (bs BalanceService) Transactions(uID int64) ([]entity.Transaction, error) {
-	ts, err := bs.store.SelectUserTransactions(uID)
-	if err != nil && errors.Is(err, domain.ErrNotFound) {
-		return make([]entity.Transaction, 0), nil
-	}
-
-	if err != nil {
-		return nil, domain.ErrUnavailable
-	}
-
-	return ts, nil
 }
