@@ -35,7 +35,7 @@ components:
           type: string
           format: date-time
           readOnly: true
-          example: "2022-01-31T21:57:05Z"
+          example: "2021-01-29T02:43:15.508Z"
       required:
         - id
         - user_id
