@@ -36,6 +36,8 @@ func (bs *BalanceService) TransferMoney(t entity.Transaction) (entity.Transactio
 		if err != nil {
 			return entity.Transaction{}, err
 		}
+
+		return t, nil
 	}
 
 	curB, err := bs.store.SelectUserBalanceByID(t.UserID)
@@ -75,12 +77,12 @@ func (bs *BalanceService) TransferMoney(t entity.Transaction) (entity.Transactio
 }
 
 func (bs *BalanceService) transferringFunds(t entity.Transaction) error {
-	_, err := bs.store.SelectUserBalanceByID(t.UserID)
+	_, err := bs.store.SelectUserBalanceByID(t.TransferID)
 	isNotFound := errors.Is(err, domain.ErrNotFound)
 
 	if err != nil && isNotFound {
 		b := entity.Balance{
-			UserID: t.UserID,
+			UserID: t.TransferID,
 			Amount: 0,
 		}
 

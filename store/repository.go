@@ -32,7 +32,7 @@ func (s *Store) InsertUserTransactions(t entity.Transaction) error {
 		return err
 	}
 
-	_, err = tx.Exec(`INSERT INTO users_transactions (user_id, amount, type_op, transfer_id, description, created_at) 
+	_, err = tx.Exec(`INSERT INTO users_transactions (user_id, amount, event, transfer_id, message, created_at) 
 								VALUES ($1, $2, $3, $4, $5, $6)`, t.UserID, t.Amount, t.Event, t.TransferID, t.Message, t.CreatedAt)
 	if err != nil {
 		return err
@@ -58,7 +58,7 @@ func (s *Store) InsertUserBalance(b entity.Balance) error {
 func (s *Store) SelectUserTransactions(uID int64) ([]entity.Transaction, error) {
 	var ts []entity.Transaction
 
-	rows, err := s.db.Query("SELECT id, user_id, amount, type_op, transfer_id, description, created_at FROM users_transactions WHERE user_id = $1", uID)
+	rows, err := s.db.Query("SELECT id, user_id, amount, event, transfer_id, message, created_at FROM users_transactions WHERE user_id = $1", uID)
 	if err != nil {
 
 		return nil, err
@@ -118,7 +118,7 @@ func (s *Store) UpdateUserTransactions(t entity.Transaction) (int64, error) {
 		return t.Amount, err
 	}
 
-	_, err = tx.Exec(`INSERT INTO users_transactions (user_id, amount, type_op, transfer_id, description, created_at) 
+	_, err = tx.Exec(`INSERT INTO users_transactions (user_id, amount, event, transfer_id, message, created_at) 
 								VALUES ($1, $2, $3, $4, $5, $6)`, t.UserID, t.Amount, t.Event, t.TransferID, t.Message, t.CreatedAt)
 	if err != nil {
 		return t.Amount, err
@@ -142,7 +142,7 @@ func (s *Store) TxUpdateUsersBalances(t entity.Transaction) error {
 
 	var curSum int64
 
-	err = tx.QueryRow("SELECT amount FROM users_balances WHERE user_id = $1", t.TransferID).Scan(&curSum)
+	err = tx.QueryRow("SELECT amount FROM users_balances WHERE user_id = $1", t.UserID).Scan(&curSum)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			return domain.ErrNotFound
@@ -155,24 +155,24 @@ func (s *Store) TxUpdateUsersBalances(t entity.Transaction) error {
 		return domain.ErrEnoughMoney
 	}
 
-	_, err = tx.Exec("UPDATE users_balances SET amount = amount - $1 WHERE user_id = $2", t.Amount, t.TransferID)
+	_, err = tx.Exec("UPDATE users_balances SET amount = amount - $1 WHERE user_id = $2", t.Amount, t.UserID)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec(`INSERT INTO users_transactions (user_id, amount, type_op, transfer_id, description, created_at) 
-								VALUES ($1, $2, $3, $4, $5, $6)`, t.TransferID, t.Amount, t.Event, t.UserID, t.Message, t.CreatedAt)
+	_, err = tx.Exec(`INSERT INTO users_transactions (user_id, amount, event, transfer_id, message, created_at) 
+								VALUES ($1, $2, $3, $4, $5, $6)`, t.UserID, t.Amount, entity.EventWriteOffs, t.TransferID, t.Message, t.CreatedAt)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec("UPDATE users_balances SET amount = amount + $1 WHERE user_id = $2", t.Amount, t.UserID)
+	_, err = tx.Exec("UPDATE users_balances SET amount = amount + $1 WHERE user_id = $2", t.Amount, t.TransferID)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec(`INSERT INTO users_transactions (user_id, amount, type_op, transfer_id, description, created_at) 
-								VALUES ($1, $2, $3, $4, $5, $6)`, t.UserID, t.Amount, t.Event, t.TransferID, t.Message, t.CreatedAt)
+	_, err = tx.Exec(`INSERT INTO users_transactions (user_id, amount, event, transfer_id, message, created_at) 
+								VALUES ($1, $2, $3, $4, $5, $6)`, t.TransferID, t.Amount, entity.EventCrediting, t.UserID, t.Message, t.CreatedAt)
 	if err != nil {
 		return err
 	}
