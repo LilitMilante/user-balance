@@ -9,4 +9,6 @@ services:
     ports:
       - ${DB_PORT}:5432
     volumes:
-      - './sql:/var/lib/postgresql/data'
+      - db-ub:/var/lib/postgresql/data
+volumes:
+  db-ub:
