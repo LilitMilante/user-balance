@@ -1,12 +1,17 @@
 include ./.env
 
-build:
-	go build ./cmd/app
+start: db-up app-up run migrate-up
 
-up:
+app-up:
+	go build -o ./build/app ./cmd/app
+
+run:
+	./build/app
+
+db-up:
 	docker-compose -f ./docker/docker-compose.yml --env-file .env up -d
 
-down:
+db-down:
 	docker-compose -f ./docker/docker-compose.yml down
 
 
