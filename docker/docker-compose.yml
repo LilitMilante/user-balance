@@ -6,7 +6,7 @@ services:
       - 8080:8080
     networks:
       ub-net:
-    depends_on: [database]
+    depends_on: [ database ]
 
   database:
     image: 'postgres:latest'
@@ -20,6 +20,11 @@ services:
       - db-ub:/var/lib/postgresql/data
     networks:
       ub-net:
+
+  cache_redis:
+    image: 'redis:6.2.6-alpine'
+    ports:
+      - '6379:6379'
 
 volumes:
   db-ub:

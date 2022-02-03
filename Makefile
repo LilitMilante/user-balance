@@ -1,6 +1,6 @@
 include ./.env
 
-start: db-up app-up run migrate-up
+start: dc-up app-up run migrate-up
 
 app-up:
 	go build -o ./build/app ./cmd/app
@@ -8,10 +8,13 @@ app-up:
 run:
 	./build/app
 
-db-up:
+dc-up-local:
+	docker-compose -f ./docker/docker-compose.yml --env-file .env up -d database cache_redis
+
+dc-up:
 	docker-compose -f ./docker/docker-compose.yml --env-file .env up -d
 
-db-down:
+dc-down:
 	docker-compose -f ./docker/docker-compose.yml down
 
 

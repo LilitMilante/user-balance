@@ -7,20 +7,23 @@ import (
 	"time"
 	"user-balance/domain"
 	"user-balance/domain/entity"
+	"user-balance/infrastructure/redisdb"
 	"user-balance/store"
 )
 
 type BalanceService struct {
-	store  *store.Store
-	apiKey string
+	store   *store.Store
+	redisDB *redisdb.RedisStore
+	apiKey  string
 }
 
 const converterURL = "https://free.currconv.com/api/v7/"
 
-func NewBalanceService(s *store.Store, ak string) *BalanceService {
+func NewBalanceService(s *store.Store, rdb *redisdb.RedisStore, ak string) *BalanceService {
 	bs := BalanceService{
-		store:  s,
-		apiKey: ak,
+		store:   s,
+		redisDB: rdb,
+		apiKey:  ak,
 	}
 
 	return &bs
