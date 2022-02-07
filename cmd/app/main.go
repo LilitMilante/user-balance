@@ -1,20 +1,18 @@
 package main
 
 import (
-	"context"
+	_ "github.com/lib/pq"
 	"log"
+	"user-balance/api"
 	"user-balance/bootstrap"
 	"user-balance/domain/service"
-	"user-balance/handlers"
 	"user-balance/infrastructure/redisdb"
-	"user-balance/store"
-
-	_ "github.com/lib/pq"
+	"user-balance/infrastructure/store"
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	//ctx, cancel := context.WithCancel(context.Background())
+	//defer cancel()
 
 	c, err := bootstrap.NewConfig()
 	if err != nil {
@@ -28,24 +26,14 @@ func main() {
 
 	defer db.Close()
 
-	s := store.NewStore(db)
-	rdb := redisdb.NewRedisStore(ctx)
-	//
-	//err = rdb.Set(ctx, "Hello", "World", 0).Err()
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//val, err := rdb.Get(ctx, "Hello").Result()
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//log.Println("Hello", val)
-	//
+	rdb := redisdb.NewRedisStore()
+	defer rdb.Close()
 
-	bs := service.NewBalanceService(s, rdb, c.ApiKey)
-	srv := handlers.NewServer(bs)
+	s := store.NewStore(db, rdb)
+
+	bs := service.NewBalanceService(s, c.ApiKey)
+
+	srv := api.NewServer(bs)
 	err = srv.Start(c.HttpPort)
 	if err != nil {
 		log.Fatal("ListenAndServe:", err)

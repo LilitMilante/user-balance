@@ -1,25 +1,28 @@
-package handlers
+package api
 
 import (
 	"encoding/json"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"strconv"
 	"user-balance/domain/entity"
-	"user-balance/domain/service"
-
-	"github.com/gorilla/mux"
 )
 
-type Server struct {
-	r  *mux.Router
-	bs *service.BalanceService
+type Servicer interface {
+	TransferMoney(t entity.Transaction) (entity.Transaction, error)
+	Transactions(uID int64) ([]entity.Transaction, error)
+	UserBalance(id int64, currency string) (entity.Balance, error)
 }
 
-func NewServer(bs *service.BalanceService) *Server {
-	r := mux.NewRouter()
+type server struct {
+	r  *mux.Router
+	bs Servicer
+}
 
-	s := Server{
+func NewServer(bs Servicer) *server {
+	r := mux.NewRouter()
+	s := server{
 		r:  r,
 		bs: bs,
 	}
@@ -27,7 +30,7 @@ func NewServer(bs *service.BalanceService) *Server {
 	return &s
 }
 
-func (s *Server) Start(port string) error {
+func (s *server) Start(port string) error {
 	s.r.HandleFunc("/transactions", s.MoneyTransactionHandler).Methods(http.MethodPost)
 	s.r.HandleFunc("/users/{id}/balance", s.CheckBalanceHandler).Methods(http.MethodGet)
 	s.r.HandleFunc("/users/{id}/transactions", s.UserTransactions).Methods(http.MethodGet)
@@ -35,7 +38,7 @@ func (s *Server) Start(port string) error {
 	return http.ListenAndServe(":"+port, s.r)
 }
 
-func (s *Server) MoneyTransactionHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) MoneyTransactionHandler(w http.ResponseWriter, r *http.Request) {
 	var t entity.Transaction
 
 	err := json.NewDecoder(r.Body).Decode(&t)
@@ -66,7 +69,7 @@ func (s *Server) MoneyTransactionHandler(w http.ResponseWriter, r *http.Request)
 
 }
 
-func (s *Server) CheckBalanceHandler(w http.ResponseWriter, r *http.Request) {
+func (s *server) CheckBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	currency := r.URL.Query().Get("currency")
 
 	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
@@ -89,7 +92,7 @@ func (s *Server) CheckBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) UserTransactions(w http.ResponseWriter, r *http.Request) {
+func (s *server) UserTransactions(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 64)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

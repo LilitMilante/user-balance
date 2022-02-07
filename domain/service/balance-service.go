@@ -7,29 +7,34 @@ import (
 	"time"
 	"user-balance/domain"
 	"user-balance/domain/entity"
-	"user-balance/infrastructure/redisdb"
-	"user-balance/store"
 )
 
-type BalanceService struct {
-	store   *store.Store
-	redisDB *redisdb.RedisStore
-	apiKey  string
+type Storager interface {
+	InsertUserTransactions(t entity.Transaction) error
+	InsertUserBalance(b entity.Balance) error
+	SelectUserTransactions(uID int64) ([]entity.Transaction, error)
+	SelectUserBalanceByID(id int64) (entity.Balance, error)
+	UpdateUserTransactions(t entity.Transaction) (int64, error)
+	TxUpdateUsersBalances(t entity.Transaction) error
+}
+
+type balanceService struct {
+	store  Storager
+	apiKey string
 }
 
 const converterURL = "https://free.currconv.com/api/v7/"
 
-func NewBalanceService(s *store.Store, rdb *redisdb.RedisStore, ak string) *BalanceService {
-	bs := BalanceService{
-		store:   s,
-		redisDB: rdb,
-		apiKey:  ak,
+func NewBalanceService(s Storager, ak string) *balanceService {
+	bs := balanceService{
+		store:  s,
+		apiKey: ak,
 	}
 
 	return &bs
 }
 
-func (bs *BalanceService) TransferMoney(t entity.Transaction) (entity.Transaction, error) {
+func (bs *balanceService) TransferMoney(t entity.Transaction) (entity.Transaction, error) {
 	var isPlus = t.Event == entity.EventCrediting
 
 	t.CreatedAt = time.Now().UTC()
@@ -79,7 +84,7 @@ func (bs *BalanceService) TransferMoney(t entity.Transaction) (entity.Transactio
 	return t, nil
 }
 
-func (bs *BalanceService) transferringFunds(t entity.Transaction) error {
+func (bs *balanceService) transferringFunds(t entity.Transaction) error {
 	_, err := bs.store.SelectUserBalanceByID(t.TransferID)
 	isNotFound := errors.Is(err, domain.ErrNotFound)
 
@@ -107,7 +112,7 @@ func (bs *BalanceService) transferringFunds(t entity.Transaction) error {
 	return nil
 }
 
-func (bs BalanceService) Transactions(uID int64) ([]entity.Transaction, error) {
+func (bs balanceService) Transactions(uID int64) ([]entity.Transaction, error) {
 	ts, err := bs.store.SelectUserTransactions(uID)
 	if err != nil && errors.Is(err, domain.ErrNotFound) {
 		return make([]entity.Transaction, 0), nil
@@ -120,7 +125,7 @@ func (bs BalanceService) Transactions(uID int64) ([]entity.Transaction, error) {
 	return ts, nil
 }
 
-func (bs *BalanceService) UserBalance(id int64, currency string) (entity.Balance, error) {
+func (bs *balanceService) UserBalance(id int64, currency string) (entity.Balance, error) {
 	b, err := bs.store.SelectUserBalanceByID(id)
 	if err != nil {
 		return entity.Balance{}, err

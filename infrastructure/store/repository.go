@@ -1,22 +1,28 @@
 package store
 
 import (
+	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"github.com/go-redis/redis/v8"
+	"log"
+	"strconv"
 	"user-balance/domain"
 	"user-balance/domain/entity"
+	"user-balance/infrastructure/redisdb"
 )
 
 type Store struct {
-	db *sql.DB
+	db  *sql.DB
+	rdb *redisdb.RedisStore
 }
 
-func NewStore(db *sql.DB) *Store {
-	s := Store{
-		db: db,
+func NewStore(db *sql.DB, rdb *redisdb.RedisStore) *Store {
+	return &Store{
+		db:  db,
+		rdb: rdb,
 	}
-
-	return &s
 }
 
 func (s *Store) InsertUserTransactions(t entity.Transaction) error {
@@ -91,8 +97,16 @@ func (s *Store) SelectUserTransactions(uID int64) ([]entity.Transaction, error) 
 
 func (s *Store) SelectUserBalanceByID(id int64) (entity.Balance, error) {
 	var b entity.Balance
+	ctx := context.Background()
 
-	err := s.db.QueryRow("SELECT user_id, amount FROM users_balances WHERE user_id = $1", id).Scan(&b.UserID, &b.Amount)
+	userB, err := s.rdb.Get(ctx, strconv.Itoa(int(id))).Bytes()
+	if err == nil {
+		_ = json.Unmarshal(userB, &b)
+
+		return b, nil
+	}
+
+	err = s.db.QueryRow("SELECT user_id, amount FROM users_balances WHERE user_id = $1", id).Scan(&b.UserID, &b.Amount)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return b, domain.ErrNotFound
@@ -100,6 +114,12 @@ func (s *Store) SelectUserBalanceByID(id int64) (entity.Balance, error) {
 
 	if err != nil {
 		return b, err
+	}
+
+	jb, _ := json.Marshal(b)
+	err = s.rdb.Set(ctx, strconv.Itoa(int(id)), jb, 0).Err()
+	if err != nil {
+		log.Println(err)
 	}
 
 	return b, nil
@@ -180,6 +200,11 @@ func (s *Store) TxUpdateUsersBalances(t entity.Transaction) error {
 	err = tx.Commit()
 	if err != nil {
 		return err
+	}
+
+	err = s.rdb.Del(context.Background(), strconv.Itoa(int(t.UserID)), strconv.Itoa(int(t.TransferID))).Err()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		log.Println("Help Redis!!", err)
 	}
 
 	return nil

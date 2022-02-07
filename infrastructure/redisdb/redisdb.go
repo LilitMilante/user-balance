@@ -1,7 +1,6 @@
 package redisdb
 
 import (
-	"context"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -9,7 +8,7 @@ type RedisStore struct {
 	*redis.Client
 }
 
-func NewRedisStore(_ context.Context) *RedisStore {
+func NewRedisStore() *RedisStore {
 	c := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
